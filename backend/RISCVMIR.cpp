@@ -1,6 +1,10 @@
+/**
+ * @file RISCVMIR.cpp
+ * @brief RISC-V 中间表示 (MIR) 的实现文件
+ * @details 本文件实现了 RISCVMIR 类及其相关方法，用于构建和操作 RISC-V 架构的中间表示。
+ *          包括指令的操作数管理、指令生成、打印等功能。
+ */
 #include "../include/backend/RISCVMIR.hpp"
-
-
 RISCVMOperand*& RISCVMIR:: GetDef() {return def;}
 RISCVMOperand*& RISCVMIR::GetOperand(int ind){
     // if(def==nullptr)

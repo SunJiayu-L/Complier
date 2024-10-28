@@ -1,3 +1,16 @@
+/**
+ * @file PhiElimination.cpp
+ * @brief 实现了 Phi 消除优化的相关功能。
+ * 
+ * 本文件包含了 `PhiElimination` 类的实现，该类负责处理 RISC-V 架构下的 Phi 指令消除问题。
+ * 主要功能包括：
+ * - 查找并创建关键基本块
+ * - 处理 Phi 指令的依赖关系图
+ * - 生成并插入复制指令
+ * - 处理基本块中的 Phi 指令
+ * - 对整个函数进行 Phi 消除优化
+ */
+
 #include "../include/backend/PhiElimination.hpp"
 #include "../include/backend/RISCVMIR.hpp"
 #include "../include/backend/RISCVTrival.hpp"

@@ -1,3 +1,14 @@
+/**
+ * @file BackendDCE.cpp
+ * @brief 死代码消除 (Dead Code Elimination, DCE) 实现文件
+ * 
+ * 本文件实现了 `BackendDCE` 类中的方法，用于在 RISC-V 后端编译器中进行死代码消除。
+ * 主要功能包括：
+ * - 计算基本块的后继
+ * - 遍历函数中的所有基本块并尝试删除无用指令
+ * - 更新每个基本块的活跃变量集合
+ * - 判断是否可以处理某个指令
+ */
 #include "../include/backend/BackendDCE.hpp"
 using DCE = BackendDCE;
 

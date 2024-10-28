@@ -1,3 +1,15 @@
+/**
+ * @file Sched.cpp
+ * @brief 本文件实现了调度模块中的关键类和方法，包括指令依赖关系的构建、依赖图的生成、高度和深度的计算等。
+ * 
+ * 该模块主要负责：
+ * - 指令是否为加载或存储指令的判断
+ * - 基本块依赖信息的构建
+ * - 依赖图的构建，包括依赖关系的添加和反依赖关系的处理
+ * - 计算每个节点的高度和深度
+ * - 调度区域的划分
+ * - 边界指令的判断
+ */
 #include "../include/backend/Sched.hpp"
 using ISA = RISCVMIR::RISCVISA;
 bool isLoadinst (RISCVMIR* inst) {

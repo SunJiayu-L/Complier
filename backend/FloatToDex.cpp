@@ -1,3 +1,11 @@
+/**
+ * @file FloatToDex.cpp
+ * @brief 浮点数转换为十进制表示
+ * 
+ * 本文件实现了 `FloatToDex` 模块中的两个函数：
+ * - `getFloatIEEE`：获取浮点数的 IEEE 754 表示
+ * - `binaryToDecimal`：将二进制字符串转换为十进制整数
+ */
 #include "../include/backend/FloatToDex.hpp"
 
 void getFloatIEEE(float value) {

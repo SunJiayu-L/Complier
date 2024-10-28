@@ -1,3 +1,16 @@
+/**
+ * @file GraphColor.cpp
+ * @brief 实现了图着色寄存器分配算法的相关功能。
+ * 
+ * 本文件包含了 `GraphColor` 类的实现，该类负责处理 RISC-V 架构下的寄存器分配问题。
+ * 主要功能包括：
+ * - 初始化和清理工作列表
+ * - 计算活跃信息和干扰图
+ * - 简化、合并、冻结和溢出节点
+ * - 分配物理寄存器
+ * - 生成和插入溢出指令
+ * - 重写程序以替换虚拟寄存器为物理寄存器
+ */
 #include "../include/backend/RISCVFrameContext.hpp"
 #include "../include/backend/RISCVMIR.hpp"
 #include "../include/backend/RISCVMOperand.hpp"

@@ -1,3 +1,13 @@
+/**
+ * @file PostRACalleeSavedLegalizer.cpp
+ * @brief 实现了调用者保存寄存器的合法性检查和处理。
+ * 
+ * 本文件包含了 `PostRACalleeSavedLegalizer` 类的实现，该类负责在寄存器分配后处理调用者保存的寄存器。
+ * 主要功能包括：
+ * - 筛选出需要保存和恢复的调用者保存寄存器
+ * - 在函数入口处保存这些寄存器
+ * - 在函数出口处恢复这些寄存器
+ */
 #include "../include/backend/PostRACalleeSavedLegalizer.hpp"
 #include "../include/backend/RISCVTrival.hpp"
 

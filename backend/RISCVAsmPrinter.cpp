@@ -1,3 +1,9 @@
+/**
+ * @file RISCVAsmPrinter.cpp
+ * @brief RISC-V 汇编代码生成器实现文件
+ * @details 本文件实现了 RISC-V 架构的汇编代码生成器，包括全局变量、临时变量、函数和段的处理。
+ *          提供了将中间表示（IR）转换为 RISC-V 汇编代码的功能。
+ */
 #include "../include/backend/RISCVAsmPrinter.hpp"
 
 SegmentType __oldtype=TEXT;

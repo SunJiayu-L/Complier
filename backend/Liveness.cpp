@@ -1,3 +1,14 @@
+/**
+ * @file RISCVMIR_Liveness.cpp
+ * @brief 实现 RISC-V 指令集架构的活跃性分析和寄存器分配
+ * 
+ * 本文件实现了 RISC-V 架构下的活跃性分析（Liveness Analysis）和寄存器分配（Register Allocation）。
+ * 主要功能包括：
+ * - 计算每个基本块的活跃输入（Live-in）和活跃输出（Live-out）
+ * - 计算每个指令的活跃区间（Live Intervals）
+ * - 构建干扰图（Interference Graph）
+ * - 打印活跃信息和分析结果
+ */
 #include "../include/backend/RISCVMIR.hpp"
 #include "../include/backend/RISCVMOperand.hpp"
 #include "../include/backend/RISCVRegister.hpp"

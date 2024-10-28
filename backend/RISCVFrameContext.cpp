@@ -1,3 +1,10 @@
+/**
+ * @file RISCVFrameContext.cpp
+ * @brief RISC-V 帧上下文实现文件
+ * @details 本文件实现了 RISC-V 帧上下文相关的类，包括 `NamedMOperand`、`OuterTag`、`RISCVObject`、`RISCVGlobalObject`、
+ *          `RISCVTempFloatObject`、`RISCVFrameObject` 和 `StackRegister`。这些类用于管理 RISC-V 汇编代码中的命名操作数、
+ *          全局对象、栈帧对象和堆栈寄存器。
+ */
 #include "../include/backend/RISCVFrameContext.hpp"
 std::string& NamedMOperand::GetName() {return name;}
 NamedMOperand::NamedMOperand(std::string _name,RISCVType _tp):RISCVMOperand(_tp),name(_name){}
