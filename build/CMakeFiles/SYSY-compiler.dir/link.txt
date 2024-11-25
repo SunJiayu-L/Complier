@@ -1,0 +1,1 @@
+/usr/bin/c++  -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -Wno-unused-variable -g   -fuse-ld=lld CMakeFiles/SYSY-compiler.dir/main.cpp.o  -o ../bin/SYSY-compiler  yacc/libYacc.a lib/libLib.a backend/libBackend.a ir/opt/libopt.a ir/Analysis/libAnalysis.a lib/libLib.a 

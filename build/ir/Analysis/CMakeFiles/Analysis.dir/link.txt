@@ -1,0 +1,2 @@
+/usr/bin/ar qc libAnalysis.a  CMakeFiles/Analysis.dir/AliasAnalysis.cpp.o CMakeFiles/Analysis.dir/CondProbAnalysis.cpp.o CMakeFiles/Analysis.dir/LoopInfo.cpp.o CMakeFiles/Analysis.dir/SideEffect.cpp.o CMakeFiles/Analysis.dir/dominant.cpp.o
+/usr/bin/ranlib libAnalysis.a

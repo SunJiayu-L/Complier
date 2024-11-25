@@ -1,3 +1,8 @@
+/**
+ * @file RISCVTrival.cpp
+ * @brief RISC-V 简单指令生成类的实现文件
+ * @details 本文件实现了 RISC-V 架构中简单指令的生成方法，包括从源操作数复制到目标虚拟寄存器的指令生成。
+ */
 #include "../include/backend/RISCVTrival.hpp"
 
 RISCVMIR* RISCVTrival::CopyFrom(VirRegister* dst,RISCVMOperand* src){

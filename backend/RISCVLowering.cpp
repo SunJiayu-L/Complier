@@ -1,3 +1,10 @@
+/**
+ * @file RISCVLowering.cpp
+ * @brief RISC-V 代码生成和优化实现文件
+ * @details 本文件实现了 RISC-V 模块和函数的代码生成与优化过程。主要包括全局参数的降低、内置函数转换、
+ *          φ节点消除、指令选择、寄存器分配、死代码消除、调度、帧生成和代码布局等步骤。
+ */
+
 #include "../include/backend/RISCVLowering.hpp"
 #include "../include/backend/BuildInFunctionTransform.hpp"
 #include "../include/backend/PhiElimination.hpp"

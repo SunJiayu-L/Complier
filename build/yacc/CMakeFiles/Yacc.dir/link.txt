@@ -1,0 +1,2 @@
+/usr/bin/ar qc libYacc.a  CMakeFiles/Yacc.dir/parser.cpp.o CMakeFiles/Yacc.dir/scanner.cpp.o
+/usr/bin/ranlib libYacc.a

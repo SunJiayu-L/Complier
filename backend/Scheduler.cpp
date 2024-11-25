@@ -1,3 +1,9 @@
+/**
+ * @file Scheduler.cpp
+ * @brief 调度器实现文件
+ * 
+ * 本文件实现了调度器的相关功能，包括指令调度、依赖图构建、流水线管理等。
+ */
 #include "../include/backend/Scheduler.hpp"
 // #define DEBUG_SCHED
 template<typename T_from, typename T_to>

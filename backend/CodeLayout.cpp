@@ -1,3 +1,14 @@
+/**
+ * @file CodeLayout.cpp
+ * @brief 代码布局优化实现文件
+ * 
+ * 本文件实现了 `CodeLayout` 类中的 `run` 和 `getFreq` 方法，用于优化 RISC-V 函数的基本块布局。
+ * 主要功能包括：
+ * - 计算每个基本块的频率
+ * - 根据频率重新排列基本块以优化代码布局
+ * - 确保入口块始终位于最前面
+ * - 调整分支指令以适应新的基本块顺序
+ */
 #include "../include/backend/CodeLayout.hpp"
 #include <cmath>
 

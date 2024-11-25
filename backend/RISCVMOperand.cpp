@@ -1,3 +1,9 @@
+/**
+ * @file RISCVMOperand.cpp
+ * @brief RISC-V 操作数类的实现文件
+ * @details 本文件实现了 RISCVMOperand 类及其子类 Imm 的方法，用于管理和操作 RISC-V 架构中的各种操作数。
+ *          包括常量操作数的创建、获取和打印功能。
+ */
 #include "../include/backend/RISCVMOperand.hpp"
 #include "../include/backend/RISCVFrameContext.hpp"
 #include "../include/backend/RISCVMIR.hpp"

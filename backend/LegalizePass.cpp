@@ -1,3 +1,15 @@
+/**
+ * @file LegalizePass.cpp
+ * @brief RISC-V 指令合法化处理实现
+ * 
+ * 本文件实现了 RISC-V 指令集架构下的指令合法化过程，主要包括：
+ * - 将伪指令转换为实际指令
+ * - 处理立即数超出范围的情况
+ * - 调整寄存器和内存操作数
+ * - 处理分支指令中的立即数
+ * - 处理常量 0 的特殊情况
+ */
+//? 质量合法化优化
 #include "../include/backend/LegalizePass.hpp"
 #include "../include/backend/RISCVAsmPrinter.hpp"
 #include <cstring>

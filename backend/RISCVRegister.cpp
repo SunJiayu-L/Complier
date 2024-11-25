@@ -1,3 +1,9 @@
+/**
+ * @file RISCVRegister.cpp
+ * @brief RISC-V 寄存器类的实现文件
+ * @details 本文件实现了 RISC-V 架构中的物理寄存器、虚拟寄存器、加载地址寄存器以及寄存器列表的相关方法。
+ *          包括寄存器的创建、获取、设置和打印功能。
+ */
 #include "../include/backend/RISCVRegister.hpp"
 #include "../include/lib/MagicEnum.hpp"
 #include <sstream>

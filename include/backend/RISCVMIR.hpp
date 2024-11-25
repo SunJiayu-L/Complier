@@ -1,4 +1,4 @@
-#pragma once
+#pragma once //头文件保护
 #include "../../include/lib/Trival.hpp"
 #include "../../include/lib/MagicEnum.hpp"
 #include "../../include/backend/RISCVFrameContext.hpp"

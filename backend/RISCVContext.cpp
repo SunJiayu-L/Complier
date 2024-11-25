@@ -1,3 +1,9 @@
+/**
+ * @file RISCVContext.cpp
+ * @brief RISC-V 代码生成上下文实现文件
+ * @details 本文件实现了 RISC-V 代码生成上下文类 `RISCVLoweringContext`，负责将中间表示（IR）转换为 RISC-V 机器指令。
+ *          包括创建操作数、插入映射关系、生成虚拟寄存器等功能。
+ */
 #include "../include/backend/RISCVContext.hpp"
 #include "../include/backend/RISCVAsmPrinter.hpp"
 RISCVMOperand* RISCVLoweringContext::Create(Value* val){

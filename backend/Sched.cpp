@@ -1,275 +1,299 @@
-#include "../include/backend/Sched.hpp"
-using ISA = RISCVMIR::RISCVISA;
-bool isLoadinst (RISCVMIR* inst) {
-    ISA opcode = inst->GetOpcode();
-    return (opcode > ISA::BeginLoadMem && opcode < ISA::EndLoadMem)\
-        || (opcode > ISA::BeginFloatLoadMem && opcode < ISA::EndFloatLoadMem);
-};
-bool isStoreinst (RISCVMIR* inst) {
-    ISA opcode = inst->GetOpcode();
-    return (opcode > ISA::BeginStoreMem && opcode < ISA::EndStoreMem)\
-        || (opcode > ISA::BeginFloatStoreMem && opcode < ISA::EndFloatStoreMem);
-};
-
-BlockDepInfo::BlockDepInfo(RISCVBasicBlock* block)
-    : block(block) {
-    BuildBlockDepInfo(block->begin(), block->end());
+/**
+ * @file Sched.cpp
+ * @brief 本文件实现了调度模块中的关键类和方法，包括指令依赖关系的构建、依赖图的生成、高度和深度的计算等。
+ * 
+ * 该模块主要负责：
+ * - 指令是否为加载或存储指令的判断
+ * - 基本块依赖信息的构建
+ * - 依赖图的构建，包括依赖关系的添加和反依赖关系的处理
+ * - 计算每个节点的高度和深度
+ * - 调度区域的划分
+ * - 边界指令的判断
+ */
+#include "../include/backend/Scheduler.hpp"
+// #define DEBUG_SCHED
+template<typename T_from, typename T_to>
+void Scheduler::transfer(Sunit* sunit, T_from &container_from, T_to& container_to) {
+    container_to.push_back(sunit);
+    // container_from.erase(std::remove(container_from.begin(), container_from.end(), sunit), container_from.end());
 }
-BlockDepInfo::BlockDepInfo(RISCVBasicBlock* block, mylist_iterator begin, mylist_iterator end)
-    : block(block) {
-    BuildBlockDepInfo(begin, end);
+bool Scheduler::isFinish(DependencyGraph* depGraph) {
+    // for(auto& pair: depGraph->inDegree) {
+    //     if(pair.second != -1) {
+    //         return false;
+    //     }
+    // }
+    // return true;
+    if(Sequence.size() == depGraph->adjList.size()) return true;
+    return false;
 }
-
-void BlockDepInfo::BuildBlockDepInfo(mylist_iterator begin, mylist_iterator end) {
-    for(mylist_iterator it = begin; it != end; ++it) {
-        RISCVMIR* inst = *it;
-        if(isboundary(inst)) continue;
-        Sunit* sunit = new Sunit();
-        inst2sunit.push_back(std::make_pair(inst, sunit));
-        Sunit2InstMap[sunit] = inst;
-
-        if(inst->GetDef() != nullptr) {
-            def2inst[inst->GetDef()].push(inst);
+bool Scheduler::compareSunit(const Sunit* a, const Sunit* b) {
+    if(a->get_maxLatency() == b->get_maxLatency()) {
+        if(a->get_height() == b->get_height()) {
+            return a->get_depth() < b->get_depth();
         }
-        for(int i=0; i<inst->GetOperandSize(); i++) {
-            if(inst->GetOperand(i) != nullptr) {
-                use2inst[inst->GetOperand(i)].push(inst);
-            }
+        return a->get_height() > b->get_height();
+    }
+    return a->get_maxLatency() < b->get_maxLatency();
+}
+void Scheduler::nextCycle() {
+    if(PlaneNode.empty()) {
+        CurCycle++;
+        PipelineMask = 0;
+        return ;
+    }
+    assert(0&&"Still node in PlaneNode");
+}
+void Scheduler::Schedule_clear() {
+    PlaneNode.clear();
+    Pending.clear();
+    Available.clear();
+    Sequence.clear();
+    PipelineDivLatency = 0;
+    PipelineFDivLatency = 0;
+    CurCycle = 0;
+}
+bool Scheduler::isPipelineReady(RISCVMIR* inst) {
+    RISCVMIR::RISCVISA op = inst->GetOpcode();
+    SchedInfo *info = new SchedInfo(op);
+    uint32_t pipeline = info->get_Pipeline();
+    if(pipeline == PIPELINE::PipelineA || pipeline == PIPELINE::PipelineB) {
+        if(pipeline & PipelineMask) {
+            return false;
+        }
+        PipelineMask |= pipeline;
+        return true;
+    }
+    else if(pipeline == PIPELINE::PipelineAB) {
+        if(pipeline & PipelineMask == pipeline) {
+            return false;
+        }
+        if(pipeline & PipelineMask == PIPELINE::PipelineA) {
+            // issule to PipelineB
+            PipelineMask |= PIPELINE::PipelineB;
+            return true;
+        }
+        // issule to PipelineA
+        PipelineMask |= PIPELINE::PipelineA;
+        return true;
+    }
+    // Actually, both PipelineDiv and PipelineFDiv will occpuy PipelineB.
+    else if(pipeline == PIPELINE::PipelineDiv) {
+        if(PipelineDivLatency >= CurCycle) {
+            return false;
+        }
+        if(op>=ISA::_div && op<=ISA::_remu) {
+            PipelineDivLatency += 65;
+        }
+        else if(op>=ISA::_divw && op<ISA::EndArithmetic) {
+            PipelineDivLatency += 33;
+        }
+        PipelineMask |= PIPELINE::PipelineB;
+        return true;
+    }
+    else if(pipeline == PIPELINE::PipelineFDiv) {
+        if(PipelineFDivLatency >= CurCycle) {
+            return false;
+        }
+        if(op==ISA::_fdiv_s) {
+            PipelineFDivLatency +=26;
+        }
+        else if(op==ISA::_fsqrt_s) {
+            PipelineFDivLatency += 27;
+        }
+        PipelineMask |= PIPELINE::PipelineB;
+        return true;
+    }
+    else if(pipeline == PIPELINE::PipelineVoid) {
+        return true;
+    }
+}
+
+void Scheduler::Swap_region(mylist_iterator begin, mylist_iterator end, BlockDepInfo* depInfo) {
+    if(Sequence.size()==0) {
+        return;
+    }
+    std::list<RISCVMIR*> sched_list;
+    for(auto& sunit: Sequence) {
+        sched_list.push_back(depInfo->get_Sunit2InstMap()[sunit]);
+    }
+    sched_list.reverse();
+    RISCVBasicBlock*& block = depInfo->get_block();
+    block->swap_region(*begin, *end, sched_list);
+    int a=0;
+}
+// Pre_RA_Scheduler
+void Pre_RA_Scheduler::ScheduleOnFunction(RISCVLoweringContext& ctx) {
+    #ifdef DEBUG_SCHED
+    std::ofstream Sched_debugfile(Sched_debuginfo);
+    std::streambuf* cout_buf = std::cout.rdbuf();
+    std::cout.rdbuf(Sched_debugfile.rdbuf());
+    #endif
+    for(auto block : *(ctx.GetCurFunction())) {
+        ScheduleOnBlock(block);
+    }
+    #ifdef DEBUG_SCHED
+    std::cout.rdbuf(cout_buf);
+    Sched_debugfile.close();
+    #endif
+}
+
+void Pre_RA_Scheduler::ScheduleOnBlock(RISCVBasicBlock* block) {
+    // if(block->GetName() == ".LBB11") {
+    //     int a = 0;
+    // }
+    if(block->Size() <= 1) return;
+    SchedRegion region(block);
+    BlockDepInfo* depInfo = new BlockDepInfo(block);
+    #ifdef DEBUG_SCHED
+    std::cout << "ScheduleOnBlock: " << block->GetName() << std::endl;
+    #endif
+    if(block->Size() > 2) { 
+        while(region.LastRegion()) {
+            // BlockDepInfo* depInfo = new BlockDepInfo(block, region.begin, region.end);
+            ScheduleOnRegion(region.begin, region.end, depInfo);
         }
     }
 }
 
-void DependencyGraph::BuildGraph(mylist_iterator begin, mylist_iterator end){
-    auto GetRealSunit = [&](RISCVMIR* inst) {
-        for(auto pair : depInfo->inst2sunit) {
-            if(pair.first == inst)
-                return pair;
-        }
-        assert(0 && "impossible");
-    };
-    auto GetWriteReg = [&](RISCVMIR* inst) {
-        return SchedInfo(inst->GetOpcode()).WriteRes;
-    };
-    auto GetReadAdvance = [&](RISCVMIR* inst) {
-        return SchedInfo(inst->GetOpcode()).ReadAdvance;
-    };
-    std::list<RealSunit> inst2sunitLocal;
-    for(mylist_iterator it = begin; it != end; ++it) {
-        inst2sunitLocal.push_back(GetRealSunit(*it));
-    }
-
-    for(auto it = inst2sunitLocal.rbegin(); it != inst2sunitLocal.rend(); ++it) {
-        RISCVMIR*& inst = it->first;
-        Sunit*& sunit = it->second;
-        sunits.push_back(sunit);
-        // Glue info
-        if(isLoadinst(inst) || isStoreinst(inst)) {
-            GlueList.push_back(sunit);
-        }
-        if(adjList.find(sunit) == adjList.end()) {
-            adjList[sunit] = {};
-            inDegree[sunit];
-        }
-        Sunit* def = nullptr;
-        if(inst->GetDef() != nullptr) {
-            if(std::stack<RISCVMIR*>& stack = depInfo->def2inst[inst->GetDef()]; stack.size() != 0) {
-                def = GetSunit(stack.top());
-            }
-            depInfo->def2inst[inst->GetDef()].pop();
-        }
-        // Dependency info and latency computation
-        for(int i=0; i<inst->GetOperandSize(); i++) {
-            RISCVMOperand*& op = inst->GetOperand(i);
-            std::stack<RISCVMIR*>& stack = depInfo->use2inst[op];
-            stack.pop();
-            // latency info
-            if(op != nullptr) {
-                if(!depInfo->def2inst[op].empty()) {
-                    RISCVMIR* definst = depInfo->def2inst[inst->GetOperand(i)].top();
-                    addDependency(GetSunit(inst), GetSunit(definst));
-                    sunit->latency = GetWriteReg(definst) > sunit->latency ? GetWriteReg(definst): sunit->latency;             
-                }
-                else if(Imm* imm = dynamic_cast<Imm*>(op)) {
-                    // loadimm32 is a special case.
-                    sunit->latency = SchedInfo(ISA::LoadImm32).WriteRes;
-                }
-                else if(RISCVFrameObject* sreg = dynamic_cast<RISCVFrameObject*>(op)) {
-                    sunit->latency = SchedInfo(ISA::LoadFromStack).WriteRes;
-                }
-                else {
-                    // the use's def is not in this block
-                    // sunit->latency = 0;
-                }
-            }
-        }
-        if(inst->GetDef() != nullptr) {
-            if(std::stack<RISCVMIR*>& stack = depInfo->use2inst[inst->GetDef()]; stack.size() != 0) {
-                if(RISCVMIR* useinst = stack.top()) {
-                    Sunit*& use = GetSunit(useinst);
-                    if(adjList[use].find(def) == adjList[use].end()) {
-                        AntiDepMap[use] = def;
-                        adjList.erase(use);
-                    }
-                    #ifdef DEBUG_SCHED
-                    std::cout << "---AntiDependency---" << std::endl << "def->";
-                    inst->printfull();
-                    std::cout << "use<-";
-                    useinst->printfull();
-                    #endif
-                    // if(adjList[def].size() == 0) {
-                    //     AntiDepMap[use] = def;
-                    //     adjList.erase(use);
-                    // }
-                }
-            }
-        }
-        if(sunit->latency > 0) 
-            sunit->latency -= GetReadAdvance(inst);
-        #ifdef DEBUG_SCHED
-        std::cout << "latency: " << sunit->latency << "  ";
-        inst->printfull();
+void Pre_RA_Scheduler::ScheduleOnRegion(mylist_iterator begin, mylist_iterator end, BlockDepInfo* depInfo) {
+    // Build dependency graph, and compute info on graph.
+    if(begin == end) return;
+    #ifdef DEBUG_SCHED
+        std::cout << "ScheduleOnRegion: " << std::endl << " ---from---";
+        (*begin)->printfull();
+        std::cout << " ---to--- ";
+        (*end)->printfull();
         std::cout << std::flush;
-        #endif
-    }
-}
-// use sunit point to def sunit
-void DependencyGraph::addDependency(Sunit* use, Sunit* def){
-    if(adjList[use].find(def) == adjList[use].end()) {
-        adjList[use].insert(def);
-        inDegree[def]++;
-    }
-}
+    #endif
+    DependencyGraph* depGraph = new DependencyGraph(depInfo);
+    depGraph->BuildGraph(begin, end);
+    depGraph->ComputeHeight();
 
-void DependencyGraph::ComputeHeight() {
-    for(auto& it: sunits) {
-        Sunit* sunit = it;
-        if(inDegree[sunit]==0) {
-            sunit->height = 0;
-        }
-        for(auto ind = adjList[it].begin(); ind != adjList[it].end(); ++ind) {
-            Sunit* def = *ind;
-            def->height = def->height > (sunit->height + def->latency) ? def->height : (sunit->height + def->latency);
-        }
-        #ifdef DEBUG_SCHED
-        std::cout << "height: " << sunit->height;
-        depInfo->Sunit2InstMap[sunit]->printfull();
-        std::cout << std::flush;
-        #endif
-    }
-}
-
-void DependencyGraph::ComputeDepth() {
+    Schedule(depGraph);
+    Swap_region(begin, end, depInfo);
+    Schedule_clear();
     
 }
-Sunit*& DependencyGraph::GetSunit(RISCVMIR* inst) {
-    for(auto& pair : depInfo->inst2sunit) {
-        if(pair.first == inst)
-            return pair.second;
-    }
-    assert(0 && "impossible");
-}
-void DependencyGraph::RemoveAntiDep(Sunit* sunit) {
-    for(auto it = AntiDepMap.begin(); it != AntiDepMap.end();) {
-        if(it->second == sunit) {
-            it = AntiDepMap.erase(it);
+void Pre_RA_Scheduler::Schedule(DependencyGraph* depGraph) {
+    auto GetInst = [&](Sunit* sunit) {
+        return depGraph->depInfo->get_Sunit2InstMap()[sunit];
+    };
+    auto DeleteIndegre = [&](Sunit* sunit) {
+        for(auto& node: depGraph->adjList[sunit]) {
+            depGraph->inDegree[node]--;
         }
-        else ++it;
-    }
-}
-
-SchedRegion::SchedRegion(RISCVBasicBlock* BasicBlock) {
-    this->block = BasicBlock;
-    this->begin = BasicBlock->begin();
-    this->end = begin;
-    this->rbegin = BasicBlock->rbegin();
-    this->rend = rbegin;
-}
-bool SchedRegion::LastRegion() {
-    // Schedel region is from begin to the previous inst of end. 
-    rbegin = rend;
-    if(rbegin == block->rbegin()) {
-        // Start division region.    
-        if(isboundary(*rbegin)) {
-            --rend;
+    };
+    while(!isFinish(depGraph)) {
+        for(auto& sunit: depGraph->sunits) {
+            if(depGraph->inDegree[sunit] == 0) {
+                RISCVMIR* inst = GetInst(sunit);
+                if(depGraph->get_AntiDepMap()[sunit] != nullptr) {
+                    continue;
+                }
+                if(isLoadinst(inst) || isStoreinst(inst)) {
+                    if(depGraph->GlueList.front()!=sunit) {
+                        continue;
+                    } 
+                }
+                PlaneNode.push_back(sunit);
+                depGraph->inDegree[sunit] = -1;
+            }
         }
-    }
-    else if(rbegin == block->rend()) {
-        return false;
-    } 
-    else {
-        if(isboundary(*rbegin)) {
-            --rend;
+        #ifdef DEBUG_SCHED
+            if(PlaneNode.size() != 0) {
+                std::cout << "---PlaneNode---" << std::endl;
+                for(auto& node: PlaneNode) {
+                    depGraph->depInfo->get_Sunit2InstMap()[node]->printfull();
+                }
+                std::cout << std::flush;
+            }
+        #endif
+        for(auto it = PlaneNode.begin(); it != PlaneNode.end();) {
+            if(CurCycle >= (*it)->get_maxLatency()) {
+                transfer(*it, PlaneNode, Available);
+                it = PlaneNode.erase(it);
+            }
+            else {
+                transfer(*it, PlaneNode, Pending);
+                it = PlaneNode.erase(it);
+            }
         }
-    }
-    while(rend != block->rend()) { 
-        if(!isboundary(*rend)) --rend;
-        else {
-            begin = rend;
-            ++begin;
-            end = rbegin;
-            return true;
-        }
-    }
-    begin = block->begin();
-    end = rbegin;
-    return true;
-}
-bool SchedRegion::NextRegion() {
-    // Schedel region is from begin to the previous inst of end. 
-    begin = end;
-    if(begin == block->begin()) {
-        // Start division region.
-        if(isboundary(*begin)) {
-            ++begin;
-            ++end;
-        }
-    }
-    if(begin == block->end()) {
-        return false;
-    } 
-    else {
-        ++begin;
-        ++end;
-    }
-    while(end != block->end()) {
-        if(!isboundary(*end)) ++end;
-        else return true;
-    }
-    return false;
-}
-using ISA = RISCVMIR::RISCVISA;
-bool isboundary(RISCVMIR* inst) {
-    // if the inst modify the stack pointer
-    // Actually, impossible here because we generate the frame after post-ra-sched.
-    if(PhyRegister* phy = dynamic_cast<PhyRegister*>(inst->GetDef())) {
-        PhyRegister::PhyReg reg = phy->Getregenum();
-        if(reg == PhyRegister::sp || reg == PhyRegister::s0) {
-            return true;
-        }
-    }
-    // if the inst is the boundary of the block
-    // if the inst is call inst
-    ISA op = inst->GetOpcode();
-    switch(op){
-        // The division of block is strict, so we don't need to 
-        // consider these insts anymore.
-
-        case ISA::ret :
-        case ISA::_j :
-        case ISA::_beq:
-        case ISA::_bne:
-        case ISA::_blt:
-        case ISA::_bge:
-        case ISA::_ble:
-        case ISA::_bgt:
-        case ISA::_bgeu:
-        case ISA::_bltu:
-        case ISA::_jal:
-        case ISA::_jalr:
-        case ISA::call:
-            return true;
-        default :
+        // the first sunit is the highest priority
+        std::sort(Pending.begin(), Pending.end(), compareSunit);
+        for(auto it = Pending.begin(); it != Pending.end();) {
+            if(CurCycle >= (*it)->get_maxLatency()) {
+                transfer(*it, Pending, Available);
+                it = Pending.erase(it);
+                continue;
+            }
             break;
+        }
+
+        auto getInstInfo = [&](Sunit* sunit) {
+            return depGraph->depInfo->get_Sunit2InstMap()[sunit];
+        };
+        std::sort(Available.begin(), Available.end(), compareSunit);
+        std::vector<Sunit *> temp;
+        for(auto it = Available.begin(); it != Available.end();) {
+            // Consider the pipeline
+            if(isPipelineReady(getInstInfo(*it))) {
+                // consider the glue for instructions
+                RISCVMIR* inst = GetInst(*it);
+                if(isLoadinst(inst) || isStoreinst(inst)) {
+                    if(depGraph->GlueList.front()==*it) {
+                        depGraph->GlueList.erase(depGraph->GlueList.begin());
+                    }
+                    else continue;
+                }
+                // consider the antidependency
+                depGraph->RemoveAntiDep(*it);
+                // issule the instruction
+                transfer(*it, Available, Sequence);
+                // ?
+                for(auto& node: depGraph->adjList[*it]) {
+                    node->set_maxLatency(node->get_maxLatency() > CurCycle + (*it)->get_latency() ?\
+                                         node->get_maxLatency() : CurCycle + (*it)->get_latency());
+                }
+                DeleteIndegre(*it);
+                it = Available.erase(it);
+            }
+            else {
+                transfer(*it, Available, temp);
+                it = Available.erase(it);
+            }
+        }
+        for(auto& it: temp) {
+            transfer(it, temp, Available);
+        }
+        temp.clear();
+        nextCycle();
     }
-    return false;
+    #ifdef DEBUG_SCHED
+        std::cout << "---Sequence---" << std::endl;
+        for(auto& node: Sequence) {
+            for(auto& it: depGraph->depInfo->get_inst2sunit()) {
+                if(it.second == node) {
+                    it.first->printfull();
+                }
+            }
+        }
+        std::cout << std::flush;
+    #endif
+}
+
+
+// Post_RA_Scheduler
+void Post_RA_Scheduler::ScheduleOnFunction(RISCVLoweringContext&) {
+
+}
+
+void Post_RA_Scheduler::ScheduleOnBlock(RISCVBasicBlock* block) {
+
+}
+
+void Post_RA_Scheduler::ScheduleOnRegion(mylist_iterator begin, mylist_iterator end, BlockDepInfo* depInfo) {
+}
+
+void Post_RA_Scheduler::Schedule(DependencyGraph* depGraph) {
 }

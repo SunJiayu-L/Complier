@@ -1,3 +1,37 @@
+/**
+ * @file RISCVMIR.cpp
+ * @brief RISC-V 中间表示 (MIR) 的实现文件
+ * @details 本文件实现了 RISCVMIR 类及其相关方法，用于构建和操作 RISC-V 架构的中间表示。
+ *          包括指令的操作数管理、指令生成、打印等功能。
+ *   
+ *          该类的主要作用是实现指令的功能，包括指令的操作符、左右操作数，同时指令集的定义也在该类中。
+ *          该类仅提供了简单的创建、修改左右操作数以及获取该指令不同信息的函数。
+ * 
+ * @section MIR内容
+ * - 指令操作符：定义了 RISC-V 指令集的操作符。
+ * - 操作数管理：管理指令的操作数，包括定义操作数和获取操作数。
+ * - 指令生成：提供生成 RISC-V 指令的方法。
+ * - 打印功能：提供打印指令信息的方法。
+ * 
+ * @section 作用
+ * RISCVMIR 类在后端编译过程中起到了关键作用，主要用于：
+ * - 构建和操作 RISC-V 架构的中间表示。
+ * - 管理指令的操作数和生成指令。
+ * - 为后续的优化和代码生成阶段提供基础设施。
+ * 
+ * @section 使用该文件的其他文件
+ * - BuildInFunctionTransform.cpp：用于内置函数转换。
+ * - RISCVISel.cpp：用于指令选择。
+ * - PhiElimination.cpp：用于 Phi 指令消除。
+ * - LegalizePass.cpp：用于指令合法化。
+ * - DeleteDeadBlock.cpp：用于删除死基本块。
+ * - BackendDCE.cpp：用于死代码消除。
+ * - RegAlloc.cpp：用于寄存器分配。
+ * - PostRACalleeSavedLegalizer.cpp：用于调用者保存寄存器合法化。
+ * - CodeLayout.cpp：用于代码布局。
+ * - RISCVAsmPrinter.cpp：用于汇编生成。
+ */
+
 #include "../include/backend/RISCVMIR.hpp"
 
 

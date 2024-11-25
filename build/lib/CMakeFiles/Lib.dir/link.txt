@@ -1,0 +1,2 @@
+/usr/bin/ar qc libLib.a  CMakeFiles/Lib.dir/AST_NODE.cpp.o CMakeFiles/Lib.dir/BaseCFG.cpp.o CMakeFiles/Lib.dir/CFG.cpp.o CMakeFiles/Lib.dir/Trival.cpp.o CMakeFiles/Lib.dir/Type.cpp.o CMakeFiles/Lib.dir/TypeTrans.cpp.o
+/usr/bin/ranlib libLib.a
